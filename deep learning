@@ -1,0 +1,98 @@
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename)) 
+df= pd.read_csv('/content/Crop_recommendation (1).csv')
+df
+sns.stripplot(y = "label", x = "ph", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+sns.stripplot(y = "label", x = "P", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+sns.stripplot(y = "label", x = "N", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+sns.stripplot(y = "label", x = "K", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+sns.stripplot(y = "label", x = "temperature", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+sns.stripplot(y = "label", x = "humidity", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+sns.stripplot(y = "label", x = "rainfall", hue = "label", orient = "h", data = df,size=5)
+plt.show()
+y=df['label']
+X=df.drop('label',axis=1)
+from sklearn.model_selection import train_test_split,GridSearchCV# splitting the data for training and testing
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,random_state=0)
+from sklearn.ensemble import RandomForestClassifier
+
+clf=RandomForestClassifier(n_estimators=20,max_depth=5,bootstrap=False,random_state=0)
+clf.fit(X_train,y_train)
+sns.pairplot(df,hue='label')
+plt.figure(figsize=(20,15))
+sns.scatterplot(data=df)
+y_pred=clf.predict(X_test)
+from sklearn import metrics
+
+# Model Accuracy
+print("Accuracy:", metrics.accuracy_score(y_pred, y_test))
+from sklearn.model_selection import cross_val_score
+print(cross_val_score(clf,X,y,cv=10).mean())
+from sklearn import preprocessing
+
+# label_encoder object knows how to understand word labels.
+label_encoder = preprocessing.LabelEncoder()
+
+# Encode labels in column 'species'.
+df['label_encoded']= label_encoder.fit_transform(df['label'])
+X=df.drop(['label','label_encoded'],axis=1)
+y=df['label_encoded']
+print(len(y.unique()))
+from sklearn.model_selection import train_test_split,GridSearchCV# splitting the data for training and testing
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3,random_state=0)
+from sklearn.preprocessing import StandardScaler
+sc = StandardScaler()
+X_train = sc.fit_transform(X_train)
+X_test = sc.transform(X_test)
+import tensorflow
+from tensorflow.keras import Sequential
+ann=Sequential()
+from tensorflow import keras
+ann.add(keras.layers.Dense(28,input_shape=(7,),activation='relu'))
+ann.add(keras.layers.Dense(64,input_shape=(7,), activation='relu'))
+ann.add(keras.layers.Dense(28,input_shape=(7,), activation='relu'))
+ann.add(keras.layers.Dense(22,input_shape=(7,), activation='softmax'))
+ann.compile(optimizer="adam",loss="sparse_categorical_crossentropy",metrics=['accuracy'])
+ann.fit(x=X_train,y=y_train,batch_size=50,epochs = 300)
+preds=ann.predict(X_test)
+eval=ann.evaluate(X_test,y_test)
+print(eval)
+y_pred=[]
+for x in preds:
+    y_pred.append(np.argmax(x))
+print(y_pred)
+y_pred=np.array(y_pred)
+print(y_pred.shape,y_test.shape)
+sns.regplot(x=y_test,y=y_pred,label="Predicted")
+from sklearn.metrics import multilabel_confusion_matrix,classification_report
+print(y_pred.shape,y_test.shape)
+multi_confuse_matrix=multilabel_confusion_matrix(y_test,y_pred)
+accur=[]
+for x in multi_confuse_matrix:
+    accur.append((x[0][0])/(x[0][0]+x[1][1]+x[0][1]+x[1][0]))
+print((sum(accur)/22)*100)
+sensi=[]
+for x in multi_confuse_matrix:
+    sensi.append((x[0][0])/(x[0][0]+x[1][0]))
+print("Sensitivity is ",(sum(sensi)/22)*100)
+speci=[]
+for x in multi_confuse_matrix:
+    speci.append((x[1][1])/(x[1][1]+x[0][1]))
+print("Specificity is ",(sum(speci)/22)*100)
+labels=[f"{x}" for x in range(1,23)]
+print(classification_report(y_test, y_pred, target_names=labels))
+
